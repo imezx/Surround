@@ -1,0 +1,12 @@
+{
+  "name": "surround",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "surround": {
+        "$path": "src"
+      }
+    }
+  }
+}
