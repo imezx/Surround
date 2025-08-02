@@ -17,7 +17,7 @@ type Object = {
 	max_distance: number,
 }
 
-local default_max_distance: number = 35
+local default_max_distance: number = 15
 local throttle: number = 1 / 24
 local last_throttle: number = 0
 local objects: { Object } = {}
@@ -42,14 +42,30 @@ Surround.addObject = function(_object: BasePart, sound: Sound, baseVolume: numbe
 	})
 end
 
+Surround.removeObject = function(_object: BasePart, sound: Sound)
+	if not _object or not sound then
+		return
+	end
+	local object: BasePart = _object
+	if _object:IsA("Model") and _object.PrimaryPart then
+		object = _object.PrimaryPart
+	end
+
+	for idx: number, obj: Object in objects do
+		if obj.root == object and obj.sound == sound then
+			table.remove(objects, idx)
+			return
+		end
+	end
+end
+
 RunService.PreRender:Connect(function(dt: number)
 	if last_throttle <= throttle then
 		last_throttle += dt
 		return
 	end
 	last_throttle = 0
-	local character = Player.Character
-	local characterRoot: BasePart? = character and character.PrimaryPart
+	local characterRoot: BasePart? = Player.Character and Player.Character.PrimaryPart
 	if not characterRoot then
 		return
 	end
@@ -59,7 +75,9 @@ RunService.PreRender:Connect(function(dt: number)
 		local sounds: { [Sound]: number } = {}
 		for _, object: Object in queued do
 			local pos: Vector3 = object.root.Position
-			local volume: number = math.max(0, object.baseVolume - (pos - characterPos).Magnitude / object.max_distance)
+			local distance: number = (pos - characterPos).Magnitude
+			local volume: number =
+				math.clamp(object.baseVolume * (1 - distance / object.max_distance), 0, object.baseVolume)
 			local highest_volume: number = sounds[object.sound] or -1
 			if volume <= highest_volume then
 				continue
@@ -72,7 +90,7 @@ RunService.PreRender:Connect(function(dt: number)
 		end
 	else
 		for idx: number, object: Object in objects do
-			if not object.root or not object.sound then
+			if not object.root or not object.sound or not object.root.Parent then
 				objects[idx] = nil
 				continue
 			end
